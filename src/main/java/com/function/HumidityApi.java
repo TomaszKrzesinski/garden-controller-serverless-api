@@ -1,5 +1,6 @@
 package com.function;
 
+import com.function.entities.HumidityEntity;
 import com.microsoft.azure.functions.ExecutionContext;
 import com.microsoft.azure.functions.HttpMethod;
 import com.microsoft.azure.functions.HttpRequestMessage;
@@ -9,6 +10,8 @@ import com.microsoft.azure.functions.annotation.AuthorizationLevel;
 import com.microsoft.azure.functions.annotation.CosmosDBInput;
 import com.microsoft.azure.functions.annotation.FunctionName;
 import com.microsoft.azure.functions.annotation.HttpTrigger;
+
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -21,8 +24,8 @@ public class HumidityApi {
    * 1. curl -d "HTTP Body" {your host}/api/HttpExample
    * 2. curl "{your host}/api/HttpExample?name=HTTP%20Query"
    */
-  @FunctionName("GetHumidity")
-  public HttpResponseMessage run(
+  @FunctionName("GetCurrentHumidity")
+  public HttpResponseMessage GetCurrentHumidity(
     @HttpTrigger(
       name = "req",
       methods = { HttpMethod.GET },
@@ -32,24 +35,26 @@ public class HumidityApi {
       name = "database",
       databaseName = "humidity-data",
       collectionName = "humidity",
-      id = "1",
-      partitionKey = "sampleHumidity",
+      sqlQuery = "SELECT TOP 1 * from Items ORDER BY Items._ts DESC",
+      partitionKey = "{Query.sensorName}",
       connectionStringSetting = "CosmosDBConnectionString"
-    ) Optional<String> item,
+    ) Optional<List<HumidityEntity>> items,
     final ExecutionContext context
   ) {
     context.getLogger().info("Parameters are: " + request.getQueryParameters());
-    context.getLogger().info("String from the database is " + (item.isPresent() ? item.get() : null));
 
-    if (!item.isPresent()) {
-      return request
-        .createResponseBuilder(HttpStatus.BAD_REQUEST)
-        .body("Please pass a name on the query string or in the request body")
-        .build();
-    } else {
+    if (items.isPresent()) {
+      HumidityEntity humidityEntity = items.get().get(0);
+      context.getLogger().info("Retrived Item with id: " + humidityEntity.getId() + " and value: " + humidityEntity.getValue());
       return request
         .createResponseBuilder(HttpStatus.OK)
-        .body("Everything OK")
+        .body(humidityEntity)
+        .build();
+    } else {
+      context.getLogger().info("No item found for given sensor name.");
+      return request
+        .createResponseBuilder(HttpStatus.BAD_REQUEST)
+        .body("No item found for given sensor name.")
         .build();
     }
   }
