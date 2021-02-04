@@ -14,29 +14,27 @@ import com.microsoft.azure.functions.annotation.HttpTrigger;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Azure Functions with HTTP Trigger.
- */
 public class HumidityApi {
 
   /**
-   * This function listens at endpoint "/api/HttpExample". Two ways to invoke it using "curl" command in bash:
-   * 1. curl -d "HTTP Body" {your host}/api/HttpExample
-   * 2. curl "{your host}/api/HttpExample?name=HTTP%20Query"
+   * This function listens at endpoint "/api/humidity". 
+   * It consumes 'zoneName' query param which is an uniqe zone identifier and also PartitioningKey in CosmosDB collection.
+   * @return HumidityEntity - last reading of humidity for given zone.  
    */
   @FunctionName("GetCurrentHumidity")
   public HttpResponseMessage GetCurrentHumidity(
     @HttpTrigger(
       name = "req",
       methods = { HttpMethod.GET },
-      authLevel = AuthorizationLevel.FUNCTION
+      authLevel = AuthorizationLevel.FUNCTION,
+      route = "humidity"
     ) HttpRequestMessage<Optional<String>> request,
     @CosmosDBInput(
       name = "database",
       databaseName = "humidity-data",
       collectionName = "humidity",
       sqlQuery = "SELECT TOP 1 * from Items ORDER BY Items._ts DESC",
-      partitionKey = "{Query.sensorName}",
+      partitionKey = "{Query.zoneName}",
       connectionStringSetting = "CosmosDBConnectionString"
     ) Optional<List<HumidityEntity>> items,
     final ExecutionContext context
