@@ -1,16 +1,21 @@
 package com.function.entities;
 
 public class HumidityEntity {
-  private Long id;
+  private String id;
   private String pk;
   private Double value;
   private Integer _ts;
 
-  public Long getId() {
+  public HumidityEntity(String pk, Double value) {
+    this.pk = pk;
+    this.value = value;
+  }
+
+  public String getId() {
     return id;
   }
 
-  public void setId(Long id) {
+  public void setId(String id) {
     this.id = id;
   }
 
